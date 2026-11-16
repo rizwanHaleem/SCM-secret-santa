@@ -1,121 +1,348 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://vfmqphjsfbvsnkgrxjyk.supabase.co',
+    anonKey: 'sb_publishable_x8mn78FlA4xUiOaWype6UQ_I5OCoCvh',
+  );
+
+  runApp(const SecretSantaApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SecretSantaApp extends StatelessWidget {
+  const SecretSantaApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Secret Santa',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF124734),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const WelcomeScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  bool _loading = false;
 
-  void _incrementCounter() {
+  Future<void> _testSupabaseConnection() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _loading = true;
     });
+
+    try {
+      final data = await Supabase.instance.client
+          .from('participants')
+          .select('id, full_name')
+          .eq('is_active', true)
+          .order('full_name');
+
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ParticipantTestScreen(
+            participants: List<Map<String, dynamic>>.from(data),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to connect to Secret Santa database: $error',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      backgroundColor: const Color(0xFFF7F3E8),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                children: [
+                  Container(
+                    width: 115,
+                    height: 115,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF124734),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '🎅',
+                        style: TextStyle(fontSize: 64),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  const Text(
+                    'SECRET SANTA',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF124734),
+                      fontSize: 34,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  const Text(
+                    'Christmas 2026',
+                    style: TextStyle(
+                      color: Color(0xFFB28B33),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                  const SizedBox(height: 35),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(26),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Column(
+                      children: [
+                        Text(
+                          '🎄',
+                          style: TextStyle(fontSize: 40),
+                        ),
+
+                        SizedBox(height: 15),
+
+                        Text(
+                          'Something festive is waiting for you...',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF124734),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        SizedBox(height: 18),
+
+                        Text(
+                          'This Christmas, choose someone special from '
+                          'the team and make their celebration a little '
+                          'more meaningful.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF555555),
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+
+                        SizedBox(height: 22),
+
+                        Divider(),
+
+                        SizedBox(height: 18),
+
+                        Text(
+                          'Choose carefully. Once your selection is '
+                          'confirmed, it cannot be changed. 🤫',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF8B1E2D),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed:
+                          _loading ? null : _testSupabaseConnection,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFB51F2E),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            const Color(0xFFB51F2E).withValues(alpha: 0.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                              width: 25,
+                              height: 25,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'LET\'S BEGIN  🎁',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  const Text(
+                    'A little appreciation • A little surprise • '
+                    'A lot of Christmas spirit',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF777777),
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+class ParticipantTestScreen extends StatelessWidget {
+  final List<Map<String, dynamic>> participants;
+
+  const ParticipantTestScreen({
+    super.key,
+    required this.participants,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F3E8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF124734),
+        foregroundColor: Colors.white,
+        title: const Text('Secret Santa'),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text(
+                '🎅 Connection Successful!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF124734),
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                '${participants.length} active participants found',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              ...participants.map(
+                (participant) => Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF124734),
+                      child: Text(
+                        participant['full_name']
+                            .toString()
+                            .substring(0, 1)
+                            .toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      participant['full_name'].toString(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    trailing: const Text(
+                      '🎁',
+                      style: TextStyle(fontSize: 22),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
