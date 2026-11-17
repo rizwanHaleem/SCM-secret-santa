@@ -6,7 +6,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: 'https://vfmqphjsfbvsnkgrxjyk.supabase.co',
-    anonKey: 'sb_publishable_x8mn78FlA4xUiOaWype6UQ_I5OCoCvh',
+    publishableKey: 'sb_publishable_x8mn78FlA4xUiOaWype6UQ_I5OCoCvh',
   );
 
   runApp(const SecretSantaApp());
