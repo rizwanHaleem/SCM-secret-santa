@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,7 @@ class SecretSantaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Secret Santa',
+      title: 'SCM Secret Santa',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -1875,6 +1876,22 @@ class _AdminDashboardScreenState
 
         actions: [
 
+IconButton(
+  tooltip: 'Generate QR Invitations',
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const AdminQrScreen(),
+      ),
+    );
+  },
+  icon: const Icon(
+    Icons.qr_code_2,
+  ),
+),
+
           IconButton(
             tooltip:
                 'Refresh dashboard',
@@ -2509,3 +2526,348 @@ class _AdminDashboardScreenState
   }
 }
 
+// ============================================================
+// ADMIN QR GENERATOR
+// ============================================================
+
+class AdminQrScreen extends StatefulWidget {
+  const AdminQrScreen({super.key});
+
+  @override
+  State<AdminQrScreen> createState() =>
+      _AdminQrScreenState();
+}
+
+class _AdminQrScreenState
+    extends State<AdminQrScreen> {
+
+  static const String productionBaseUrl =
+      'https://dialog-scm-secret-santa-2026.rizwanmohamed.workers.dev/';
+
+  bool loading = true;
+
+  String? errorMessage;
+
+  List<Map<String, dynamic>> participants = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipants();
+  }
+
+  Future<void> _loadParticipants() async {
+
+    try {
+
+      final response =
+          await Supabase.instance.client.rpc(
+        'admin_qr_participants',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+
+        participants =
+            List<Map<String, dynamic>>.from(response);
+
+        loading = false;
+
+      });
+
+    } catch (error) {
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+        errorMessage =
+            'Unable to load participant QR invitations.';
+      });
+    }
+  }
+
+  String _invitationUrl(
+      Map<String, dynamic> participant) {
+
+    final token =
+        participant['access_token'].toString();
+
+    return '${productionBaseUrl}?invite=$token';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      backgroundColor:
+          const Color(0xFFF7F3E8),
+
+      appBar: AppBar(
+
+        backgroundColor:
+            const Color(0xFF124734),
+
+        foregroundColor:
+            Colors.white,
+
+        title:
+            const Text(
+          'QR Invitations',
+        ),
+      ),
+
+      body: loading
+
+          ? const Center(
+              child:
+                  CircularProgressIndicator(
+                color:
+                    Color(0xFF124734),
+              ),
+            )
+
+          : errorMessage != null
+
+              ? Center(
+                  child:
+                      Padding(
+                    padding:
+                        const EdgeInsets.all(25),
+                    child:
+                        Text(
+                      errorMessage!,
+                      textAlign:
+                          TextAlign.center,
+                    ),
+                  ),
+                )
+
+              : participants.isEmpty
+
+                  ? const Center(
+                      child:
+                          Text(
+                        'No active participants found.',
+                      ),
+                    )
+
+                  : ListView.builder(
+
+                      padding:
+                          const EdgeInsets.all(20),
+
+                      itemCount:
+                          participants.length,
+
+                      itemBuilder:
+                          (context, index) {
+
+                        final participant =
+                            participants[index];
+
+                        return _buildQrCard(
+                          participant,
+                        );
+                      },
+                    ),
+    );
+  }
+
+  Widget _buildQrCard(
+      Map<String, dynamic> participant) {
+
+    final name =
+        participant['full_name'].toString();
+
+    final employeeId =
+        participant['employee_id']
+            ?.toString() ?? '';
+
+    final invitationUrl =
+        _invitationUrl(participant);
+
+    return Card(
+
+      margin:
+          const EdgeInsets.only(
+        bottom: 20,
+      ),
+
+      color:
+          Colors.white,
+
+      elevation: 2,
+
+      child:
+          Padding(
+        padding:
+            const EdgeInsets.all(20),
+
+        child:
+            Column(
+          children: [
+
+            const Text(
+              '🎄 Dialog SCM Secret Santa 2026',
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  TextStyle(
+                color:
+                    Color(0xFF124734),
+                fontSize: 18,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            const Text(
+              'Developed by Rizwan Haleem',
+              style:
+                  TextStyle(
+                color:
+                    Colors.grey,
+                fontSize: 9,
+                fontStyle:
+                    FontStyle.italic,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Text(
+              name,
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  const TextStyle(
+                color:
+                    Color(0xFF124734),
+                fontSize: 22,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            if (employeeId.isNotEmpty) ...[
+
+              const SizedBox(height: 4),
+
+              Text(
+                'Employee ID: $employeeId',
+                style:
+                    const TextStyle(
+                  color:
+                      Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
+            Container(
+
+              color:
+                  Colors.white,
+
+              padding:
+                  const EdgeInsets.all(12),
+
+              child:
+                  QrImageView(
+
+                data:
+                    invitationUrl,
+
+                version:
+                    QrVersions.auto,
+
+                size: 220,
+
+                backgroundColor:
+                    Colors.white,
+
+                eyeStyle:
+                    const QrEyeStyle(
+
+                  eyeShape:
+                      QrEyeShape.square,
+
+                  color:
+                      Color(0xFF124734),
+                ),
+
+                dataModuleStyle:
+                    const QrDataModuleStyle(
+
+                  dataModuleShape:
+                      QrDataModuleShape.square,
+
+                  color:
+                      Color(0xFF124734),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            const Text(
+              'Something festive is waiting for you...',
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  TextStyle(
+                color:
+                    Color(0xFF555555),
+                fontSize: 15,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              '🎁 Scan the QR code to discover your Secret Santa mission.',
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  TextStyle(
+                color:
+                    Color(0xFF555555),
+                height: 1.4,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            const Text(
+              'This invitation is unique to you. Please do not share it.',
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  TextStyle(
+                color:
+                    Color(0xFFB51F2E),
+                fontSize: 12,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
