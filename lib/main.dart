@@ -5,8 +5,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'YOUR_SUPABASE_URL',
-    anonKey: 'YOUR_SUPABASE_PUBLISHABLE_KEY',
+    url: 'https://vfmqphjsfbvsnkgrxjyk.supabase.co',
+    anonKey: 'sb_publishable_x8mn78FlA4xUiOaWype6UQ_I5OCoCvh',
   );
 
   runApp(const SecretSantaApp());
@@ -27,6 +27,38 @@ class SecretSantaApp extends StatelessWidget {
         ),
       ),
       home: const InviteGateway(),
+    );
+  }
+}
+
+class AppBranding extends StatelessWidget {
+  const AppBranding({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        Text(
+          'Dialog SCM - Secret Santa 2026',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF124734),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.4,
+          ),
+        ),
+        SizedBox(height: 3),
+        Text(
+          'Developed by Rizwan Haleem',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF888888),
+            fontSize: 10,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -239,6 +271,24 @@ class InvalidInvitationScreen extends StatelessWidget {
                     color: Colors.grey,
                   ),
                 ),
+const SizedBox(height: 30),
+
+OutlinedButton.icon(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const AdminLoginScreen(),
+      ),
+    );
+  },
+  icon: const Icon(Icons.admin_panel_settings),
+  label: const Text(
+    'ADMIN LOGIN',
+  ),
+),
+
               ],
             ),
           ),
@@ -360,6 +410,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               child: Column(
                 children: [
+                  const AppBranding(),
+
+                  const SizedBox(height: 28),
                   Container(
                     width: 115,
                     height: 115,
@@ -1350,6 +1403,7 @@ class CompletedScreen extends StatelessWidget {
 
                   const SizedBox(height: 28),
 
+
                   const Text(
                     'See you at the Christmas celebration! 🎄',
                     textAlign: TextAlign.center,
@@ -1359,6 +1413,8 @@ class CompletedScreen extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+
+                  
                 ],
               ),
             ),
@@ -1368,3 +1424,1088 @@ class CompletedScreen extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// ADMIN LOGIN
+// ============================================================
+
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
+
+  @override
+  State<AdminLoginScreen> createState() =>
+      _AdminLoginScreenState();
+}
+
+class _AdminLoginScreenState
+    extends State<AdminLoginScreen> {
+
+  final emailController =
+      TextEditingController();
+
+  final passwordController =
+      TextEditingController();
+
+  bool loggingIn = false;
+  bool hidePassword = true;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+
+    final email =
+        emailController.text.trim();
+
+    final password =
+        passwordController.text;
+
+    if (email.isEmpty ||
+        password.isEmpty) {
+
+      _showMessage(
+        'Please enter your admin email and password.',
+      );
+
+      return;
+    }
+
+    setState(() {
+      loggingIn = true;
+    });
+
+    try {
+
+      await Supabase.instance.client.auth
+          .signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              const AdminDashboardScreen(),
+        ),
+      );
+
+    } catch (error) {
+
+      if (!mounted) return;
+
+      setState(() {
+        loggingIn = false;
+      });
+
+      _showMessage(
+        'Admin login failed. Please check your email and password',
+      );
+    }
+  }
+
+  void _showMessage(String message) {
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(message),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      backgroundColor:
+          const Color(0xFFF7F3E8),
+
+      appBar: AppBar(
+        backgroundColor:
+            const Color(0xFF124734),
+        foregroundColor:
+            Colors.white,
+        title:
+            const Text('Admin Login'),
+      ),
+
+      body: Center(
+        child: SingleChildScrollView(
+          padding:
+              const EdgeInsets.all(24),
+
+          child: ConstrainedBox(
+            constraints:
+                const BoxConstraints(
+              maxWidth: 450,
+            ),
+
+            child: Column(
+              children: [
+
+                const Text(
+                  '🎅',
+                  style: TextStyle(
+                    fontSize: 65,
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                const Text(
+                  'Secret Santa Admin',
+                  textAlign:
+                      TextAlign.center,
+                  style: TextStyle(
+                    color:
+                        Color(0xFF124734),
+                    fontSize: 27,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  'Management Dashboard',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                TextField(
+                  controller:
+                      emailController,
+                  keyboardType:
+                      TextInputType
+                          .emailAddress,
+                  decoration:
+                      InputDecoration(
+                    labelText:
+                        'Admin Email',
+                    prefixIcon:
+                        const Icon(
+                      Icons.email_outlined,
+                    ),
+                    filled: true,
+                    fillColor:
+                        Colors.white,
+                    border:
+                        OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                              16),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                TextField(
+                  controller:
+                      passwordController,
+                  obscureText:
+                      hidePassword,
+                  onSubmitted: (_) {
+                    if (!loggingIn) {
+                      _login();
+                    }
+                  },
+                  decoration:
+                      InputDecoration(
+                    labelText:
+                        'Password',
+
+                    prefixIcon:
+                        const Icon(
+                      Icons.lock_outline,
+                    ),
+
+                    suffixIcon:
+                        IconButton(
+                      onPressed: () {
+                        setState(() {
+                          hidePassword =
+                              !hidePassword;
+                        });
+                      },
+
+                      icon: Icon(
+                        hidePassword
+                            ? Icons
+                                .visibility
+                            : Icons
+                                .visibility_off,
+                      ),
+                    ),
+
+                    filled: true,
+                    fillColor:
+                        Colors.white,
+
+                    border:
+                        OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                              16),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                SizedBox(
+                  width:
+                      double.infinity,
+                  height: 56,
+
+                  child:
+                      ElevatedButton(
+                    onPressed:
+                        loggingIn
+                            ? null
+                            : _login,
+
+                    style:
+                        ElevatedButton
+                            .styleFrom(
+                      backgroundColor:
+                          const Color(
+                              0xFF124734),
+                      foregroundColor:
+                          Colors.white,
+
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                                16),
+                      ),
+                    ),
+
+                    child:
+                        loggingIn
+
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(
+                                  color:
+                                      Colors.white,
+                                  strokeWidth:
+                                      3,
+                                ),
+                              )
+
+                            : const Text(
+                                'SIGN IN TO DASHBOARD',
+                                style:
+                                    TextStyle(
+                                  fontWeight:
+                                      FontWeight.bold,
+                                ),
+                              ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// ADMIN DASHBOARD
+// ============================================================
+
+class AdminDashboardScreen
+    extends StatefulWidget {
+
+  const AdminDashboardScreen({
+    super.key,
+  });
+
+  @override
+  State<AdminDashboardScreen>
+      createState() =>
+          _AdminDashboardScreenState();
+}
+
+
+class _AdminDashboardScreenState
+    extends State<AdminDashboardScreen> {
+
+  bool loading = true;
+
+  String? errorMessage;
+
+  Map<String, dynamic> summary = {};
+
+  List<Map<String, dynamic>>
+      report = [];
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    _loadDashboard();
+  }
+
+
+  Future<void> _loadDashboard() async {
+
+    setState(() {
+      loading = true;
+      errorMessage = null;
+    });
+
+    try {
+
+      final summaryResponse =
+          await Supabase
+              .instance.client
+              .rpc(
+        'admin_secret_santa_summary',
+      );
+
+
+      final reportResponse =
+          await Supabase
+              .instance.client
+              .rpc(
+        'admin_secret_santa_report',
+      );
+
+
+      if (!mounted) return;
+
+
+      final summaryRows =
+          List<Map<String, dynamic>>
+              .from(summaryResponse);
+
+
+      final reportRows =
+          List<Map<String, dynamic>>
+              .from(reportResponse);
+
+
+      setState(() {
+
+        summary =
+            summaryRows.isNotEmpty
+                ? summaryRows.first
+                : {};
+
+        report = reportRows;
+
+        loading = false;
+
+      });
+
+    } catch (error) {
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+        errorMessage =
+            'Unable to load the admin dashboard.';
+      });
+    }
+  }
+
+
+  Future<void> _logout() async {
+
+    await Supabase.instance.client.auth
+        .signOut();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+
+      MaterialPageRoute(
+        builder: (context) =>
+            const InviteGateway(),
+      ),
+
+      (route) => false,
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      backgroundColor:
+          const Color(0xFFF7F3E8),
+
+      appBar: AppBar(
+
+        backgroundColor:
+            const Color(0xFF124734),
+
+        foregroundColor:
+            Colors.white,
+
+        title:
+            const Text(
+          'Secret Santa Admin',
+        ),
+
+        actions: [
+
+          IconButton(
+            tooltip:
+                'Refresh dashboard',
+            onPressed:
+                loading
+                    ? null
+                    : _loadDashboard,
+
+            icon:
+                const Icon(
+              Icons.refresh,
+            ),
+          ),
+
+          IconButton(
+            tooltip: 'Sign out',
+            onPressed: _logout,
+
+            icon:
+                const Icon(
+              Icons.logout,
+            ),
+          ),
+        ],
+      ),
+
+      body: loading
+
+          ? const Center(
+              child:
+                  CircularProgressIndicator(
+                color:
+                    Color(
+                        0xFF124734),
+              ),
+            )
+
+          : errorMessage != null
+
+              ? _buildError()
+
+              : _buildDashboard(),
+    );
+  }
+
+
+  Widget _buildError() {
+
+    return Center(
+      child: Padding(
+        padding:
+            const EdgeInsets.all(30),
+
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min,
+
+          children: [
+
+            const Text(
+              '⚠️',
+              style:
+                  TextStyle(
+                fontSize: 50,
+              ),
+            ),
+
+            const SizedBox(
+                height: 15),
+
+            Text(
+              errorMessage!,
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  const TextStyle(
+                fontSize: 17,
+              ),
+            ),
+
+            const SizedBox(
+                height: 20),
+
+            ElevatedButton.icon(
+              onPressed:
+                  _loadDashboard,
+
+              icon:
+                  const Icon(
+                Icons.refresh,
+              ),
+
+              label:
+                  const Text(
+                'TRY AGAIN',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildDashboard() {
+
+    final total =
+        summary['total_participants'] ??
+            0;
+
+    final assigned =
+        summary['assigned_count'] ??
+            0;
+
+    final completed =
+        summary['completed_count'] ??
+            0;
+
+    final pendingDraw =
+        summary[
+                'pending_draw_count'] ??
+            0;
+
+    final pendingMessages =
+        summary[
+                'pending_messages_count'] ??
+            0;
+
+
+    return RefreshIndicator(
+
+      onRefresh: _loadDashboard,
+
+      child: ListView(
+
+        padding:
+            const EdgeInsets.all(20),
+
+        children: [
+
+          const Text(
+            '🎄 Secret Santa Progress',
+            style:
+                TextStyle(
+              color:
+                  Color(
+                      0xFF124734),
+              fontSize: 26,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          const Text(
+            'Live event status and participant submissions',
+            style:
+                TextStyle(
+              color: Colors.grey,
+            ),
+          ),
+
+          const SizedBox(height: 22),
+
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+
+            children: [
+
+              _summaryCard(
+                'Participants',
+                total,
+                '👥',
+              ),
+
+              _summaryCard(
+                'Assigned',
+                assigned,
+                '🎁',
+              ),
+
+              _summaryCard(
+                'Completed',
+                completed,
+                '✅',
+              ),
+
+              _summaryCard(
+                'Yet to Draw',
+                pendingDraw,
+                '🎲',
+              ),
+
+              _summaryCard(
+                'Messages Pending',
+                pendingMessages,
+                '❤️',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 30),
+
+          Row(
+            children: [
+
+              const Expanded(
+                child: Text(
+                  'Assignments & Messages',
+                  style:
+                      TextStyle(
+                    color:
+                        Color(
+                            0xFF124734),
+                    fontSize:
+                        21,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              Text(
+                '${report.length} records',
+                style:
+                    const TextStyle(
+                  color:
+                      Colors.grey,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          if (report.isEmpty)
+
+            Container(
+              padding:
+                  const EdgeInsets.all(
+                      25),
+
+              decoration:
+                  BoxDecoration(
+                color:
+                    Colors.white,
+                borderRadius:
+                    BorderRadius.circular(
+                        18),
+              ),
+
+              child:
+                  const Column(
+                children: [
+
+                  Text(
+                    '🎅',
+                    style:
+                        TextStyle(
+                      fontSize:
+                          45,
+                    ),
+                  ),
+
+                  SizedBox(
+                      height: 10),
+
+                  Text(
+                    'No Secret Santa assignments yet.',
+                    textAlign:
+                        TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+
+          ...report.map(
+            (item) =>
+                _assignmentCard(
+              item,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _summaryCard(
+    String title,
+    dynamic value,
+    String icon,
+  ) {
+
+    return Container(
+
+      width: 165,
+
+      padding:
+          const EdgeInsets.all(18),
+
+      decoration:
+          BoxDecoration(
+        color: Colors.white,
+
+        borderRadius:
+            BorderRadius.circular(18),
+
+        boxShadow: [
+
+          BoxShadow(
+            color: Colors.black
+                .withValues(
+              alpha: 0.05,
+            ),
+
+            blurRadius: 10,
+
+            offset:
+                const Offset(
+              0,
+              4,
+            ),
+          ),
+        ],
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+
+          Text(
+            icon,
+            style:
+                const TextStyle(
+              fontSize: 28,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            value.toString(),
+
+            style:
+                const TextStyle(
+              color:
+                  Color(
+                      0xFF124734),
+              fontSize: 28,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          Text(
+            title,
+            style:
+                const TextStyle(
+              color:
+                  Color(
+                      0xFF666666),
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _assignmentCard(
+      Map<String, dynamic> item) {
+
+    final completed =
+        item['messages_completed'] ==
+            true;
+
+    final appreciation =
+        item[
+            'appreciation_message'];
+
+    final christmas =
+        item[
+            'christmas_message'];
+
+
+    return Card(
+
+      margin:
+          const EdgeInsets.only(
+        bottom: 14,
+      ),
+
+      color: Colors.white,
+
+      child:
+          ExpansionTile(
+
+        leading:
+            CircleAvatar(
+          backgroundColor:
+              completed
+                  ? const Color(
+                      0xFF124734)
+                  : const Color(
+                      0xFFD19A20),
+
+          child:
+              Text(
+            completed
+                ? '✓'
+                : '…',
+
+            style:
+                const TextStyle(
+              color:
+                  Colors.white,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+        ),
+
+        title:
+            Text(
+          item['giver_name']
+                  ?.toString() ??
+              '-',
+
+          style:
+              const TextStyle(
+            fontWeight:
+                FontWeight.bold,
+          ),
+        ),
+
+        subtitle:
+            Text(
+          '🎁 ${item['recipient_name'] ?? '-'}',
+        ),
+
+        trailing:
+            Text(
+          completed
+              ? 'Complete'
+              : 'Pending',
+
+          style:
+              TextStyle(
+            color:
+                completed
+                    ? const Color(
+                        0xFF124734)
+                    : const Color(
+                        0xFFB26A00),
+
+            fontWeight:
+                FontWeight.bold,
+          ),
+        ),
+
+        childrenPadding:
+            const EdgeInsets.fromLTRB(
+          20,
+          5,
+          20,
+          22,
+        ),
+
+        children: [
+
+          const Divider(),
+
+          const SizedBox(height: 12),
+
+          _detailSection(
+            '❤️ Appreciation',
+            appreciation
+                    ?.toString() ??
+                'Not submitted yet',
+          ),
+
+          const SizedBox(height: 18),
+
+          _detailSection(
+            '🎄 Christmas Message',
+            christmas
+                    ?.toString() ??
+                'Not submitted yet',
+          ),
+
+          const SizedBox(height: 18),
+
+          _dateSection(
+            'Assignment Date',
+            item[
+                'assignment_date'],
+          ),
+
+          if (completed) ...[
+
+            const SizedBox(
+                height: 8),
+
+            _dateSection(
+              'Messages Completed',
+              item[
+                  'messages_completed_at'],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  Widget _detailSection(
+    String title,
+    String value,
+  ) {
+
+    return Align(
+      alignment:
+          Alignment.centerLeft,
+
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+
+          Text(
+            title,
+
+            style:
+                const TextStyle(
+              color:
+                  Color(
+                      0xFF124734),
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            value,
+
+            style:
+                const TextStyle(
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _dateSection(
+    String title,
+    dynamic value,
+  ) {
+
+    String displayValue =
+        'Not available';
+
+    if (value != null) {
+
+      final parsed =
+          DateTime.tryParse(
+        value.toString(),
+      );
+
+      if (parsed != null) {
+
+        final local =
+            parsed.toLocal();
+
+        displayValue =
+            '${local.day.toString().padLeft(2, '0')}/'
+            '${local.month.toString().padLeft(2, '0')}/'
+            '${local.year} '
+            '${local.hour.toString().padLeft(2, '0')}:'
+            '${local.minute.toString().padLeft(2, '0')}';
+      }
+    }
+
+
+    return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+
+      children: [
+
+        Expanded(
+          child:
+              Text(
+            title,
+
+            style:
+                const TextStyle(
+              color:
+                  Colors.grey,
+              fontSize: 13,
+            ),
+          ),
+        ),
+
+        Text(
+          displayValue,
+
+          style:
+              const TextStyle(
+            fontSize: 13,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
