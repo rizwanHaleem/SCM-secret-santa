@@ -1,3 +1,9 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:universal_html/html.dart' as html;
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -2676,47 +2682,236 @@ class _AdminQrScreenState
     );
   }
 
-  Widget _buildQrCard(
-      Map<String, dynamic> participant) {
+ Widget _buildQrCard(
+    Map<String, dynamic> participant) {
 
-    final name =
-        participant['full_name'].toString();
+  return AdminQrInvitationCard(
+    participant: participant,
+    invitationUrl: _invitationUrl(participant),
+  );
+}
 
-    final employeeId =
-        participant['employee_id']
-            ?.toString() ?? '';
+    }
 
-    final invitationUrl =
-        _invitationUrl(participant);
+// ============================================================
+// INDIVIDUAL QR INVITATION CARD
+// ============================================================
+
+class AdminQrInvitationCard extends StatefulWidget {
+  const AdminQrInvitationCard({
+    super.key,
+    required this.participant,
+    required this.invitationUrl,
+  });
+
+  final Map<String, dynamic> participant;
+  final String invitationUrl;
+
+  @override
+  State<AdminQrInvitationCard> createState() =>
+      _AdminQrInvitationCardState();
+}
+
+class _AdminQrInvitationCardState
+    extends State<AdminQrInvitationCard> {
+
+  final GlobalKey qrKey = GlobalKey();
+
+  bool downloading = false;
+
+  String get participantName =>
+      widget.participant['full_name'].toString();
+
+  String get employeeId =>
+      widget.participant['employee_id']?.toString() ?? '';
+
+  // ----------------------------------------------------------
+  // CLEAN FILENAME
+  // ----------------------------------------------------------
+
+  String _safeFileName(String name) {
+
+    final cleaned = name
+        .trim()
+        .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_');
+
+    return 'Secret_Santa_2026_$cleaned.png';
+  }
+
+
+  // ----------------------------------------------------------
+  // DOWNLOAD QR PNG
+  // ----------------------------------------------------------
+
+  Future<void> _downloadQr() async {
+
+    if (downloading) return;
+
+    setState(() {
+      downloading = true;
+    });
+
+    try {
+
+      final boundary =
+          qrKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+
+      if (boundary == null) {
+        throw Exception('QR image not ready');
+      }
+
+      final ui.Image image =
+          await boundary.toImage(
+        pixelRatio: 3.0,
+      );
+
+      final byteData =
+          await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData == null) {
+        throw Exception('Unable to create PNG');
+      }
+
+      final pngBytes =
+          byteData.buffer.asUint8List();
+
+      final blob = html.Blob(
+        [pngBytes],
+        'image/png',
+      );
+
+      final url =
+          html.Url.createObjectUrlFromBlob(blob);
+
+      final anchor =
+          html.AnchorElement(href: url)
+            ..download =
+                _safeFileName(participantName)
+            ..style.display = 'none';
+
+      html.document.body?.children.add(anchor);
+
+      anchor.click();
+
+      anchor.remove();
+
+      html.Url.revokeObjectUrl(url);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor:
+              const Color(0xFF124734),
+          content: Text(
+            '✅ QR invitation downloaded for $participantName',
+          ),
+        ),
+      );
+
+    } catch (error) {
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            'Unable to download QR invitation. Please try again.',
+          ),
+        ),
+      );
+
+    } finally {
+
+      if (mounted) {
+        setState(() {
+          downloading = false;
+        });
+      }
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // COPY EMAIL INVITATION
+  // ----------------------------------------------------------
+
+  Future<void> _copyEmailInvitation() async {
+
+    final emailText = '''
+SUBJECT: 🎄 A Christmas Surprise Is Waiting for You! 🎁
+
+Hi $participantName,
+
+Something festive is waiting for you! 🎅
+
+Your personal Dialog SCM Secret Santa 2026 QR invitation is attached.
+
+🎁 Scan your QR code to discover your Secret Santa mission.
+
+This QR invitation is unique to you, so please keep it private and do not share it with anyone.
+
+Let the Christmas magic begin! 🎄✨
+
+Dialog SCM Secret Santa 2026
+''';
+
+    await Clipboard.setData(
+      ClipboardData(
+        text: emailText,
+      ),
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor:
+            const Color(0xFF124734),
+        content: Text(
+          '✅ Email invitation copied for $participantName. Paste it into Outlook and attach the downloaded QR.',
+        ),
+      ),
+    );
+  }
+
+
+  // ----------------------------------------------------------
+  // SCREEN
+  // ----------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
 
     return Card(
 
       margin:
           const EdgeInsets.only(
-        bottom: 20,
+        bottom: 22,
       ),
 
-      color:
-          Colors.white,
+      color: Colors.white,
 
       elevation: 2,
 
-      child:
-          Padding(
+      child: Padding(
+
         padding:
             const EdgeInsets.all(20),
 
-        child:
-            Column(
+        child: Column(
           children: [
 
             const Text(
               '🎄 Dialog SCM Secret Santa 2026',
               textAlign:
                   TextAlign.center,
-
-              style:
-                  TextStyle(
+              style: TextStyle(
                 color:
                     Color(0xFF124734),
                 fontSize: 18,
@@ -2729,10 +2924,8 @@ class _AdminQrScreenState
 
             const Text(
               'Developed by Rizwan Haleem',
-              style:
-                  TextStyle(
-                color:
-                    Colors.grey,
+              style: TextStyle(
+                color: Colors.grey,
                 fontSize: 9,
                 fontStyle:
                     FontStyle.italic,
@@ -2742,10 +2935,9 @@ class _AdminQrScreenState
             const SizedBox(height: 20),
 
             Text(
-              name,
+              participantName,
               textAlign:
                   TextAlign.center,
-
               style:
                   const TextStyle(
                 color:
@@ -2764,55 +2956,121 @@ class _AdminQrScreenState
                 'Employee ID: $employeeId',
                 style:
                     const TextStyle(
-                  color:
-                      Colors.grey,
+                  color: Colors.grey,
                   fontSize: 12,
                 ),
               ),
             ],
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
 
-            Container(
+            // -----------------------------------------------
+            // ONLY THIS AREA IS CAPTURED FOR PNG DOWNLOAD
+            // -----------------------------------------------
 
-              color:
-                  Colors.white,
+            RepaintBoundary(
+              key: qrKey,
 
-              padding:
-                  const EdgeInsets.all(12),
+              child: Container(
+                width: 300,
+                padding:
+                    const EdgeInsets.all(22),
 
-              child:
-                  QrImageView(
+                color: Colors.white,
 
-                data:
-                    invitationUrl,
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+                  children: [
 
-                version:
-                    QrVersions.auto,
+                    const Text(
+                      'Dialog SCM',
+                      style:
+                          TextStyle(
+                        color:
+                            Color(0xFF124734),
+                        fontSize: 18,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
 
-                size: 220,
+                    const SizedBox(height: 5),
 
-                backgroundColor:
-                    Colors.white,
+                    const Text(
+                      'SECRET SANTA 2026',
+                      style:
+                          TextStyle(
+                        color:
+                            Color(0xFFB51F2E),
+                        fontSize: 14,
+                        fontWeight:
+                            FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
 
-                eyeStyle:
-                    const QrEyeStyle(
+                    const SizedBox(height: 14),
 
-                  eyeShape:
-                      QrEyeShape.square,
+                    QrImageView(
+                      data:
+                          widget.invitationUrl,
 
-                  color:
-                      Color(0xFF124734),
-                ),
+                      version:
+                          QrVersions.auto,
 
-                dataModuleStyle:
-                    const QrDataModuleStyle(
+                      size: 220,
 
-                  dataModuleShape:
-                      QrDataModuleShape.square,
+                      backgroundColor:
+                          Colors.white,
 
-                  color:
-                      Color(0xFF124734),
+                      eyeStyle:
+                          const QrEyeStyle(
+                        eyeShape:
+                            QrEyeShape.square,
+                        color:
+                            Color(0xFF124734),
+                      ),
+
+                      dataModuleStyle:
+                          const QrDataModuleStyle(
+                        dataModuleShape:
+                            QrDataModuleShape.square,
+                        color:
+                            Color(0xFF124734),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    const Text(
+                      'Something festive is waiting for you...',
+                      textAlign:
+                          TextAlign.center,
+                      style:
+                          TextStyle(
+                        color:
+                            Color(0xFF555555),
+                        fontSize: 12,
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 7),
+
+                    const Text(
+                      'Scan to discover your Secret Santa mission 🎁',
+                      textAlign:
+                          TextAlign.center,
+                      style:
+                          TextStyle(
+                        color:
+                            Color(0xFF555555),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -2820,42 +3078,9 @@ class _AdminQrScreenState
             const SizedBox(height: 18),
 
             const Text(
-              'Something festive is waiting for you...',
-              textAlign:
-                  TextAlign.center,
-
-              style:
-                  TextStyle(
-                color:
-                    Color(0xFF555555),
-                fontSize: 15,
-                fontWeight:
-                    FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              '🎁 Scan the QR code to discover your Secret Santa mission.',
-              textAlign:
-                  TextAlign.center,
-
-              style:
-                  TextStyle(
-                color:
-                    Color(0xFF555555),
-                height: 1.4,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            const Text(
               'This invitation is unique to you. Please do not share it.',
               textAlign:
                   TextAlign.center,
-
               style:
                   TextStyle(
                 color:
@@ -2863,6 +3088,119 @@ class _AdminQrScreenState
                 fontSize: 12,
                 fontWeight:
                     FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
+            // -----------------------------------------------
+            // DOWNLOAD BUTTON
+            // -----------------------------------------------
+
+            SizedBox(
+              width:
+                  double.infinity,
+              height: 52,
+
+              child:
+                  ElevatedButton.icon(
+
+                onPressed:
+                    downloading
+                        ? null
+                        : _downloadQr,
+
+                icon:
+                    downloading
+
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child:
+                                CircularProgressIndicator(
+                              color:
+                                  Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+
+                        : const Icon(
+                            Icons.download,
+                          ),
+
+                label:
+                    Text(
+                  downloading
+                      ? 'PREPARING QR...'
+                      : 'DOWNLOAD QR',
+                ),
+
+                style:
+                    ElevatedButton.styleFrom(
+                  backgroundColor:
+                      const Color(
+                          0xFF124734),
+                  foregroundColor:
+                      Colors.white,
+
+                  shape:
+                      RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(
+                            14),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // -----------------------------------------------
+            // COPY EMAIL BUTTON
+            // -----------------------------------------------
+
+            SizedBox(
+              width:
+                  double.infinity,
+              height: 52,
+
+              child:
+                  OutlinedButton.icon(
+
+                onPressed:
+                    _copyEmailInvitation,
+
+                icon:
+                    const Icon(
+                  Icons.content_copy,
+                ),
+
+                label:
+                    const Text(
+                  'COPY EMAIL INVITATION',
+                ),
+
+                style:
+                    OutlinedButton.styleFrom(
+
+                  foregroundColor:
+                      const Color(
+                          0xFF124734),
+
+                  side:
+                      const BorderSide(
+                    color:
+                        Color(
+                            0xFF124734),
+                  ),
+
+                  shape:
+                      RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(
+                            14),
+                  ),
+                ),
               ),
             ),
           ],
